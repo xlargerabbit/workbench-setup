@@ -1,0 +1,21 @@
+export ZDOTDIR="${XDG_CONFIG_HOME:-$HOME/.config}/zsh"
+
+# Source modular configs
+for conf in "$ZDOTDIR"/exports.zsh "$ZDOTDIR"/aliases.zsh "$ZDOTDIR"/functions.zsh "$ZDOTDIR"/completions.zsh; do
+  [[ -f "$conf" ]] && source "$conf"
+done
+
+# Starship prompt
+eval "$(starship init zsh)"
+
+# zoxide
+eval "$(zoxide init zsh)"
+
+# fzf
+source <(fzf --zsh)
+
+# atuin
+eval "$(atuin init zsh)"
+
+# asdf
+source "$(brew --prefix asdf)/libexec/asdf.sh"

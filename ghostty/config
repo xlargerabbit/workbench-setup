@@ -1,0 +1,21 @@
+font-family = JetBrainsMono Nerd Font
+font-size = 14
+
+theme = catppuccin-mocha
+
+window-padding-x = 8
+window-padding-y = 8
+window-decoration = true
+
+cursor-style = block
+cursor-style-blink = false
+
+shell-integration = zsh
+
+copy-on-select = clipboard
+confirm-close-surface = false
+
+keybind = super+shift+enter=new_split:right
+keybind = super+shift+minus=new_split:down
+keybind = super+shift+left_bracket=goto_split:previous
+keybind = super+shift+right_bracket=goto_split:next
