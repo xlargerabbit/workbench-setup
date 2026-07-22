@@ -5,6 +5,11 @@ for conf in "$ZDOTDIR"/exports.zsh "$ZDOTDIR"/aliases.zsh "$ZDOTDIR"/functions.z
   [[ -f "$conf" ]] && source "$conf"
 done
 
+# Shell plugins (must be after compinit, autosuggestions before syntax-highlighting)
+source "$(brew --prefix)/share/zsh-autosuggestions/zsh-autosuggestions.zsh"
+source "$(brew --prefix)/share/zsh-completions/zsh-completions.zsh"
+source "$(brew --prefix)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh"
+
 # Starship prompt
 eval "$(starship init zsh)"
 
@@ -18,4 +23,3 @@ source <(fzf --zsh)
 eval "$(atuin init zsh)"
 
 # asdf
-source "$(brew --prefix asdf)/libexec/asdf.sh"

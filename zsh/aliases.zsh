@@ -22,3 +22,6 @@ alias ...="cd ../.."
 alias rm="rm -i"
 alias mv="mv -i"
 alias cp="cp -i"
+
+# workspace
+alias ws="z ~/workspace"

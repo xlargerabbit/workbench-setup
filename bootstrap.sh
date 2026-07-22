@@ -2,10 +2,7 @@
 set -euo pipefail
 
 DOTFILES_DIR="$(cd "$(dirname "$0")" && pwd)"
-
-info() { printf "\033[1;34m==> %s\033[0m\n" "$1"; }
-success() { printf "\033[1;32m==> %s\033[0m\n" "$1"; }
-skip() { printf "\033[1;33m==> %s (already installed)\033[0m\n" "$1"; }
+source "$DOTFILES_DIR/lib.sh"
 
 # --- Homebrew ---
 if command -v brew &>/dev/null; then
@@ -22,30 +19,28 @@ info "Installing packages from Brewfile..."
 brew bundle --file="$DOTFILES_DIR/Brewfile" --no-upgrade
 success "Brewfile packages installed"
 
+# --- Verify fonts ---
+info "Verifying font installation..."
+for font_cask in font-jetbrains-mono-nerd-font font-fira-code-nerd-font; do
+  if ! brew list --cask "$font_cask" &>/dev/null; then
+    info "Installing $font_cask (missed by bundle)..."
+    brew install --cask "$font_cask"
+  fi
+done
+success "Fonts verified"
+
 # --- Symlinks ---
 info "Creating config symlinks..."
-mkdir -p "$HOME/.config/ghostty" \
+mkdir -p "$HOME/.config/ghostty/themes" \
          "$HOME/.config/zsh" \
          "$HOME/.config/git"
 
-link_config() {
-  local src="$1" dest="$2"
-  if [[ -L "$dest" ]] && [[ "$(readlink "$dest")" == "$src" ]]; then
-    return
-  fi
-  if [[ -e "$dest" ]]; then
-    mv "$dest" "${dest}.backup.$(date +%s)"
-    printf "  Backed up existing %s\n" "$dest"
-  fi
-  ln -sf "$src" "$dest"
-  printf "  Linked %s -> %s\n" "$src" "$dest"
-}
-
 link_config "$DOTFILES_DIR/ghostty/config"   "$HOME/.config/ghostty/config"
+link_config "$DOTFILES_DIR/ghostty/themes/catppuccin-mocha" "$HOME/.config/ghostty/themes/catppuccin-mocha"
 link_config "$DOTFILES_DIR/starship.toml"    "$HOME/.config/starship.toml"
 link_config "$DOTFILES_DIR/git/gitconfig"    "$HOME/.config/git/config"
 link_config "$DOTFILES_DIR/git/gitignore_global" "$HOME/.config/git/gitignore_global"
-link_config "$DOTFILES_DIR/zsh/zshrc"        "$HOME/.config/zsh/zshrc"
+link_config "$DOTFILES_DIR/zsh/zshrc"        "$HOME/.config/zsh/.zshrc"
 link_config "$DOTFILES_DIR/zsh/aliases.zsh"  "$HOME/.config/zsh/aliases.zsh"
 link_config "$DOTFILES_DIR/zsh/exports.zsh"  "$HOME/.config/zsh/exports.zsh"
 link_config "$DOTFILES_DIR/zsh/functions.zsh" "$HOME/.config/zsh/functions.zsh"
@@ -92,27 +87,53 @@ success "asdf runtimes configured"
 
 # --- Zed extensions ---
 if command -v zed &>/dev/null; then
-  info "Checking Zed extensions..."
+  info "Configuring Zed auto-install extensions..."
+  zed_settings="$HOME/.config/zed/settings.json"
 
-  installed_extensions=$(zed --list-extensions 2>/dev/null || true)
-
-  install_extension() {
-    if echo "$installed_extensions" | grep -qi "^${1}$"; then
-      return
+  if [[ -f "$zed_settings" ]]; then
+    if grep -q '"auto_install_extensions"' "$zed_settings"; then
+      skip "auto_install_extensions already configured"
+    else
+      # Insert auto_install_extensions after the opening brace
+      tmp="${zed_settings}.tmp.$$"
+      sed '1,/{/s/{/{\
+  "auto_install_extensions": {\
+    "prettier": true,\
+    "eslint": true,\
+    "go": true,\
+    "python": true,\
+    "rust-analyzer": true,\
+    "tailwindcss": true\
+  },/' "$zed_settings" > "$tmp" && mv "$tmp" "$zed_settings"
+      success "Added auto_install_extensions to Zed settings"
     fi
-    zed --install-extension "$1"
+  else
+    mkdir -p "$(dirname "$zed_settings")"
+    cat > "$zed_settings" <<'ZED_EOF'
+{
+  "auto_install_extensions": {
+    "prettier": true,
+    "eslint": true,
+    "go": true,
+    "python": true,
+    "rust-analyzer": true,
+    "tailwindcss": true
   }
-
-  install_extension "prettier"
-  install_extension "eslint"
-  install_extension "go"
-  install_extension "python"
-  install_extension "rust-analyzer"
-  install_extension "tailwindcss"
-
-  success "Zed extensions installed"
+}
+ZED_EOF
+    success "Created Zed settings with auto_install_extensions"
+  fi
 else
   skip "Zed CLI not found — install Zed first"
+fi
+
+# --- Extensions ---
+extensions=()
+while IFS= read -r line; do
+  [[ -n "$line" ]] && extensions+=("$line")
+done < <(parse_extensions "$@")
+if [[ ${#extensions[@]} -gt 0 ]]; then
+  run_extensions "bootstrap.sh" "${extensions[@]}"
 fi
 
 echo ""

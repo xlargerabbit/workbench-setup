@@ -6,6 +6,7 @@
 	defaultBranch = main
 
 [core]
+	editor = zed --wait
 	pager = delta
 	excludesFile = ~/.config/git/gitignore_global
 

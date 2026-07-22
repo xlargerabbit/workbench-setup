@@ -1,4 +1,4 @@
-# macOS Dev Setup
+# Workbench Dev Setup
 
 A reproducible workstation provisioning guide. One clone, one script, a ready machine.
 
@@ -9,6 +9,8 @@ macOS
 ├── Homebrew          # package manager
 ├── Brewfile          # declarative package list
 ├── bootstrap.sh      # one-command provisioning
+├── lib.sh            # shared helpers
+├── doctor.sh         # health checks
 ├── Dotfiles
 │   ├── Ghostty       # terminal
 │   ├── Zsh           # shell
@@ -20,17 +22,21 @@ macOS
 │   ├── Python
 │   ├── Go
 │   └── Rust
-└── CLI Tools
-    ├── fzf           # fuzzy finder
-    ├── zoxide        # smart cd
-    ├── lazygit       # git TUI
-    ├── ripgrep       # fast grep
-    ├── fd            # fast find
-    ├── eza           # modern ls
-    ├── bat           # syntax-highlighted cat
-    ├── jq / yq       # JSON / YAML processing
-    ├── delta         # better git diff
-    └── atuin         # synced shell history
+├── CLI Tools
+│   ├── fzf           # fuzzy finder
+│   ├── zoxide        # smart cd
+│   ├── lazygit       # git TUI
+│   ├── ripgrep       # fast grep
+│   ├── fd            # fast find
+│   ├── eza           # modern ls
+│   ├── bat           # syntax-highlighted cat
+│   ├── jq / yq       # JSON / YAML processing
+│   ├── delta         # better git diff
+│   └── atuin         # synced shell history
+└── Extensions        # opt-in tool bundles
+    └── ai            # AI engineering tools
+        ├── herdr     # multi-terminal agent sessions
+        └── pi        # AI coding agent
 ```
 
 ## Terminal
@@ -75,7 +81,7 @@ z project    # jumps to ~/code/project
 **fzf** — the backbone of interactive terminal use.
 
 | Shortcut | Action           |
-|----------|------------------|
+| -------- | ---------------- |
 | Ctrl-R   | History search   |
 | Ctrl-T   | File search      |
 | Alt-C    | Directory search |
@@ -136,13 +142,13 @@ bat file.ts
 
 **asdf** as the single version manager for all languages. No need for nvm, pyenv, or separate installers.
 
-| Language   | asdf Plugin     |
-|------------|-----------------|
-| Node.js    | asdf-nodejs     |
-| Bun        | asdf-bun        |
-| Python     | asdf-python     |
-| Go         | asdf-golang     |
-| Rust       | asdf-rust       |
+| Language | asdf Plugin |
+| -------- | ----------- |
+| Node.js  | asdf-nodejs |
+| Bun      | asdf-bun    |
+| Python   | asdf-python |
+| Go       | asdf-golang |
+| Rust     | asdf-rust   |
 
 ```sh
 asdf plugin add nodejs
@@ -171,6 +177,8 @@ brew bundle         # install from Brewfile
 dotfiles/
 ├── Brewfile
 ├── bootstrap.sh
+├── doctor.sh
+├── lib.sh
 ├── README.md
 ├── ghostty/
 │   └── config
@@ -178,14 +186,21 @@ dotfiles/
 ├── git/
 │   ├── gitconfig
 │   └── gitignore_global
-└── zsh/
-    ├── zshrc
-    ├── aliases.zsh
-    ├── exports.zsh
-    └── functions.zsh
+├── zsh/
+│   ├── zshrc
+│   ├── aliases.zsh
+│   ├── exports.zsh
+│   └── functions.zsh
+└── extensions/
+    └── ai/
+        ├── Brewfile
+        ├── bootstrap.sh
+        ├── doctor.sh
+        └── herdr/
+            └── config.toml
 ```
 
-Root contains only `README.md`, `Brewfile`, and `bootstrap.sh`. Everything else lives under its own directory, symlinked to `~/.config/`.
+Root contains core files. Tool-specific configs live under their own directory, symlinked to `~/.config/`. Extensions live under `extensions/` with a self-contained structure.
 
 ## Bootstrap
 
@@ -195,11 +210,48 @@ One script provisions a fresh Mac:
 git clone <repo> ~/dotfiles && ~/dotfiles/bootstrap.sh
 ```
 
-The script should:
+The script:
 
-1. Install Homebrew
-2. Install packages from Brewfile
-3. Create config symlinks
-4. Install asdf and language runtimes
-5. Install Zed extensions
-6. Install fonts
+1. Installs Homebrew
+2. Installs packages from Brewfile
+3. Creates config symlinks
+4. Installs asdf and language runtimes
+5. Installs Zed extensions
+6. Installs fonts
+
+## Extensions
+
+Extensions are opt-in tool bundles that add capabilities without changing the base setup. Enable them with the `--ext` flag:
+
+```sh
+./bootstrap.sh --ext ai        # base setup + AI tools
+./bootstrap.sh --ext all       # base setup + all extensions
+./doctor.sh --ext ai           # health checks including AI tools
+```
+
+Each extension is a self-contained directory under `extensions/` with its own `Brewfile`, `bootstrap.sh`, `doctor.sh`, and config files. Without `--ext`, the base setup runs identically to before.
+
+### AI Extension
+
+Installs tools for AI-assisted development:
+
+- **herdr** — multi-terminal agent multiplexer ("tmux for coding agents"). Manages multiple AI agents in split panes with persistent sessions.
+- **pi** — open-source, BYOK terminal-based AI coding agent. Reads codebases, plans changes, edits files, and runs shell commands. Supports 20+ LLM providers.
+
+Config files managed by this repo:
+- `extensions/ai/herdr/config.toml` → `~/.config/herdr/config.toml`
+
+### Creating New Extensions
+
+Add a directory under `extensions/` with:
+
+```
+extensions/<name>/
+├── Brewfile        # packages to install
+├── bootstrap.sh    # setup script (sourced, not executed)
+├── doctor.sh       # health checks (sourced, not executed)
+└── <tool>/
+    └── config      # managed config files
+```
+
+Extension scripts are sourced by the main scripts and have access to all shared helpers from `lib.sh` (`info`, `success`, `skip`, `link_config`, `check_command`, `check_symlink`, etc.).

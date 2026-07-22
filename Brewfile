@@ -8,6 +8,11 @@ cask "zed"
 cask "font-fira-code-nerd-font"
 cask "font-jetbrains-mono-nerd-font"
 
+# Shell Plugins
+brew "zsh-autosuggestions"
+brew "zsh-completions"
+brew "zsh-syntax-highlighting"
+
 # CLI Tools
 brew "fzf"
 brew "zoxide"
